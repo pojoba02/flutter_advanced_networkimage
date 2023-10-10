@@ -412,7 +412,7 @@ class _TransitionToImageState extends State<TransitionToImage>
                     opacity: _fadeTween.animate(_animation as Animation<double>),
                     child: widget.borderRadius != null
                         ? ClipRRect(
-                            borderRadius: widget.borderRadius,
+                            borderRadius: widget.borderRadius ?? BorderRadius.zero,
                             child: buildRawImage(),
                           )
                         : buildRawImage(),
