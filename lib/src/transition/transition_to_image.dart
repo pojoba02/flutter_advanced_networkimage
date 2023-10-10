@@ -421,7 +421,7 @@ class _TransitionToImageState extends State<TransitionToImage>
                     position: _slideTween.animate(_animation as Animation<double>),
                     child: widget.borderRadius != null
                         ? ClipRRect(
-                            borderRadius: widget.borderRadius ?? BorderRadius.circular(2.0),
+                            borderRadius: widget.borderRadius ?? BorderRadius.circular(2.0)!,
                             child: buildRawImage(),
                           )
                         : buildRawImage(),
