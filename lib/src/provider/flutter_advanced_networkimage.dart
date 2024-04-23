@@ -135,7 +135,8 @@ class AdvancedNetworkImage extends ImageProvider<AdvancedNetworkImage> {
   }
 
   @override
-  ImageStreamCompleter load(AdvancedNetworkImage key, DecoderCallback decode) {
+  ImageStreamCompleter load(
+    AdvancedNetworkImage key, DecoderCallback decode) {
     final chunkEvents = StreamController<ImageChunkEvent>();
 
     return MultiFrameImageStreamCompleter(
