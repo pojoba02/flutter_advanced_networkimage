@@ -2,6 +2,7 @@ import 'dart:io';
 import 'dart:async';
 import 'dart:typed_data';
 import 'dart:ui' as ui show Codec, hashValues;
+import 'dart:ui';
 
 import 'package:path/path.dart';
 import 'package:path_provider/path_provider.dart';
@@ -136,7 +137,7 @@ class AdvancedNetworkImage extends ImageProvider<AdvancedNetworkImage> {
 
   @override
   ImageStreamCompleter load(
-    AdvancedNetworkImage key, DecoderCallback decode) {
+    AdvancedNetworkImage key, ImageDecoderCallback decode) {
     final chunkEvents = StreamController<ImageChunkEvent>();
 
     return MultiFrameImageStreamCompleter(
@@ -152,7 +153,7 @@ class AdvancedNetworkImage extends ImageProvider<AdvancedNetworkImage> {
 
   Future<ui.Codec> _loadAsync(
     AdvancedNetworkImage key,
-    DecoderCallback decode,
+    ImageDecoderCallback decode,
     StreamController<ImageChunkEvent> chunkEvents,
   ) async {
     assert(key == this);
