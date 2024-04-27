@@ -152,6 +152,9 @@ class AdvancedNetworkImage extends ImageProvider<AdvancedNetworkImage> {
     );
   }
 
+import 'dart:typed_data';
+import 'dart:ui' as ui;
+
 Future<ui.Codec> _loadAsync(
   AdvancedNetworkImage key,
   ImageDecoderCallback decode,
@@ -159,22 +162,25 @@ Future<ui.Codec> _loadAsync(
 ) async {
   assert(key == this);
 
-  // Handling disk cache
   if (useDiskCache) {
-    Uint8List? diskCacheData = await loadFromDiskCache();
-    if (diskCacheData != null) {
-      // Post-processing and callback handling
-      if (key.postProcessing != null) {
-        diskCacheData = (await key.postProcessing!(diskCacheData)) ?? diskCacheData;
+    try {
+      Uint8List? diskCacheData = await loadFromDiskCache();
+      if (diskCacheData != null) {
+        if (key.postProcessing != null) {
+          diskCacheData = (await key.postProcessing!(diskCacheData)) ?? diskCacheData;
+        }
+        if (key.loadedCallback != null) {
+          key.loadedCallback!();
+        }
+        // Convert Uint8List to ImmutableBuffer before passing to decode
+        ui.ImmutableBuffer buffer = await ui.ImmutableBuffer.fromUint8List(diskCacheData);
+        return decode(buffer);
       }
-      if (key.loadedCallback != null) {
-        key.loadedCallback!();
-      }
-      return decode(diskCacheData);
+    } catch (e) {
+      if (key.printError) print(e);
     }
   }
 
-  // Handling remote image fetching
   Uint8List? remoteImageData = await loadFromRemote(
     key.url,
     key.header,
@@ -188,26 +194,28 @@ Future<ui.Codec> _loadAsync(
   );
 
   if (remoteImageData != null) {
-    // Post-processing and callback handling
     if (key.postProcessing != null) {
       remoteImageData = (await key.postProcessing!(remoteImageData)) ?? remoteImageData;
     }
     if (key.loadedCallback != null) {
       key.loadedCallback!();
     }
-    return decode(remoteImageData);
+    // Convert Uint8List to ImmutableBuffer before passing to decode
+    ui.ImmutableBuffer buffer = await ui.ImmutableBuffer.fromUint8List(remoteImageData);
+    return decode(buffer);
   }
 
-  // Handling fallback options
   if (key.loadFailedCallback != null) {
     key.loadFailedCallback!();
   }
   if (key.fallbackAssetImage != null) {
     ByteData fallbackImage = await rootBundle.load(key.fallbackAssetImage!);
-    return decode(fallbackImage.buffer.asUint8List());
+    ui.ImmutableBuffer buffer = await ui.ImmutableBuffer.fromUint8List(fallbackImage.buffer.asUint8List());
+    return decode(buffer);
   }
   if (key.fallbackImage != null) {
-    return decode(key.fallbackImage!);
+    ui.ImmutableBuffer buffer = await ui.ImmutableBuffer.fromUint8List(key.fallbackImage!);
+    return decode(buffer);
   }
 
   return Future.error(StateError('Failed to load ${key.url}.'));
