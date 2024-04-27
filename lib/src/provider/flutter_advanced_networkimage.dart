@@ -152,9 +152,6 @@ class AdvancedNetworkImage extends ImageProvider<AdvancedNetworkImage> {
     );
   }
 
-import 'dart:typed_data';
-import 'dart:ui' as ui;
-
 Future<ui.Codec> _loadAsync(
   AdvancedNetworkImage key,
   ImageDecoderCallback decode,
