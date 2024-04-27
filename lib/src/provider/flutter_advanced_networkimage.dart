@@ -2,7 +2,6 @@ import 'dart:io';
 import 'dart:async';
 import 'dart:typed_data';
 import 'dart:ui' as ui show Codec, hashValues;
-import 'dart:ui';
 
 import 'package:path/path.dart';
 import 'package:path_provider/path_provider.dart';
@@ -136,9 +135,7 @@ class AdvancedNetworkImage extends ImageProvider<AdvancedNetworkImage> {
   }
 
   @override
-  ImageStreamCompleter load(
-    AdvancedNetworkImage key, 
-    ImageDecoderCallback decode) {
+  ImageStreamCompleter load(AdvancedNetworkImage key, DecoderCallback decode) {
     final chunkEvents = StreamController<ImageChunkEvent>();
 
     return MultiFrameImageStreamCompleter(
@@ -152,72 +149,71 @@ class AdvancedNetworkImage extends ImageProvider<AdvancedNetworkImage> {
     );
   }
 
-Future<ui.Codec> _loadAsync(
-  AdvancedNetworkImage key,
-  ImageDecoderCallback decode,
-  StreamController<ImageChunkEvent> chunkEvents,
-) async {
-  assert(key == this);
+  Future<ui.Codec> _loadAsync(
+    AdvancedNetworkImage key,
+    DecoderCallback decode,
+    StreamController<ImageChunkEvent> chunkEvents,
+  ) async {
+    assert(key == this);
 
-  if (useDiskCache) {
-    try {
-      Uint8List? diskCacheData = await loadFromDiskCache();
-      if (diskCacheData != null) {
-        if (key.postProcessing != null) {
-          diskCacheData = (await key.postProcessing!(diskCacheData)) ?? diskCacheData;
+    if (useDiskCache) {
+      try {
+        Uint8List? _diskCache = await loadFromDiskCache();
+        if (_diskCache != null) {
+          if (key.postProcessing != null)
+            _diskCache = (await key.postProcessing!(_diskCache)) ?? _diskCache;
+          if (key.loadedCallback != null) key.loadedCallback!();
+          return decode(
+            _diskCache,
+            cacheWidth: key.width,
+            cacheHeight: key.height,
+          );
         }
-        if (key.loadedCallback != null) {
-          key.loadedCallback!();
-        }
-        // Convert Uint8List to ImmutableBuffer before passing to decode
-        ui.ImmutableBuffer buffer = await ui.ImmutableBuffer.fromUint8List(diskCacheData);
-        return decode(buffer);
+      } catch (e) {
+        if (key.printError) print(e);
       }
-    } catch (e) {
-      if (key.printError) print(e);
+    } else {
+      Uint8List? imageData = await loadFromRemote(
+        key.url,
+        key.header,
+        key.retryLimit,
+        key.retryDuration,
+        key.retryDurationFactor,
+        key.timeoutDuration,
+        key.loadingProgress,
+        key.getRealUrl,
+        printError: key.printError,
+      );
+      if (imageData != null) {
+        if (key.postProcessing != null)
+          imageData = (await key.postProcessing!(imageData)) ?? imageData;
+        if (key.loadedCallback != null) key.loadedCallback!();
+        return decode(
+          imageData,
+          cacheWidth: key.width,
+          cacheHeight: key.height,
+        );
+      }
     }
-  }
 
-  Uint8List? remoteImageData = await loadFromRemote(
-    key.url,
-    key.header,
-    key.retryLimit,
-    key.retryDuration,
-    key.retryDurationFactor,
-    key.timeoutDuration,
-    key.loadingProgress,
-    key.getRealUrl,
-    printError: key.printError,
-  );
-
-  if (remoteImageData != null) {
-    if (key.postProcessing != null) {
-      remoteImageData = (await key.postProcessing!(remoteImageData)) ?? remoteImageData;
+    if (key.loadFailedCallback != null) key.loadFailedCallback!();
+    if (key.fallbackAssetImage != null) {
+      ByteData imageData = await rootBundle.load(key.fallbackAssetImage!);
+      return decode(
+        imageData.buffer.asUint8List(),
+        cacheWidth: key.width,
+        cacheHeight: key.height,
+      );
     }
-    if (key.loadedCallback != null) {
-      key.loadedCallback!();
-    }
-    // Convert Uint8List to ImmutableBuffer before passing to decode
-    ui.ImmutableBuffer buffer = await ui.ImmutableBuffer.fromUint8List(remoteImageData);
-    return decode(buffer);
-  }
+    if (key.fallbackImage != null)
+      return decode(
+        key.fallbackImage!,
+        cacheWidth: key.width,
+        cacheHeight: key.height,
+      );
 
-  if (key.loadFailedCallback != null) {
-    key.loadFailedCallback!();
+    return Future.error(StateError('Failed to load $url.'));
   }
-  if (key.fallbackAssetImage != null) {
-    ByteData fallbackImage = await rootBundle.load(key.fallbackAssetImage!);
-    ui.ImmutableBuffer buffer = await ui.ImmutableBuffer.fromUint8List(fallbackImage.buffer.asUint8List());
-    return decode(buffer);
-  }
-  if (key.fallbackImage != null) {
-    ui.ImmutableBuffer buffer = await ui.ImmutableBuffer.fromUint8List(key.fallbackImage!);
-    return decode(buffer);
-  }
-
-  return Future.error(StateError('Failed to load ${key.url}.'));
-}
-
 
   /// Load the disk cache
   ///
