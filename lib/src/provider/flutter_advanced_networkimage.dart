@@ -2,7 +2,7 @@ import 'dart:io';
 import 'dart:async';
 import 'dart:typed_data';
 import 'dart:ui' as ui show Codec, hashValues;
-
+import 'dart:ui';
 import 'package:path/path.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:flutter/widgets.dart';
@@ -135,7 +135,9 @@ class AdvancedNetworkImage extends ImageProvider<AdvancedNetworkImage> {
   }
 
   @override
-  ImageStreamCompleter load(AdvancedNetworkImage key, DecoderCallback decode) {
+  ImageStreamCompleter load(
+    AdvancedNetworkImage key,
+    DecoderBufferCallback) {
     final chunkEvents = StreamController<ImageChunkEvent>();
 
     return MultiFrameImageStreamCompleter(
@@ -150,71 +152,37 @@ class AdvancedNetworkImage extends ImageProvider<AdvancedNetworkImage> {
   }
 
   Future<ui.Codec> _loadAsync(
-    AdvancedNetworkImage key,
-    DecoderCallback decode,
-    StreamController<ImageChunkEvent> chunkEvents,
-  ) async {
-    assert(key == this);
+  AdvancedNetworkImage key,
+  DecoderBufferCallback decode,
+  StreamController<ImageChunkEvent> chunkEvents,
+) async {
+  assert(key == this);
 
-    if (useDiskCache) {
-      try {
-        Uint8List? _diskCache = await loadFromDiskCache();
-        if (_diskCache != null) {
-          if (key.postProcessing != null)
-            _diskCache = (await key.postProcessing!(_diskCache)) ?? _diskCache;
-          if (key.loadedCallback != null) key.loadedCallback!();
-          return decode(
-            _diskCache,
-            cacheWidth: key.width,
-            cacheHeight: key.height,
-          );
-        }
-      } catch (e) {
-        if (key.printError) print(e);
-      }
-    } else {
-      Uint8List? imageData = await loadFromRemote(
-        key.url,
-        key.header,
-        key.retryLimit,
-        key.retryDuration,
-        key.retryDurationFactor,
-        key.timeoutDuration,
-        key.loadingProgress,
-        key.getRealUrl,
-        printError: key.printError,
-      );
-      if (imageData != null) {
-        if (key.postProcessing != null)
-          imageData = (await key.postProcessing!(imageData)) ?? imageData;
-        if (key.loadedCallback != null) key.loadedCallback!();
-        return decode(
-          imageData,
-          cacheWidth: key.width,
-          cacheHeight: key.height,
-        );
-      }
-    }
-
-    if (key.loadFailedCallback != null) key.loadFailedCallback!();
-    if (key.fallbackAssetImage != null) {
-      ByteData imageData = await rootBundle.load(key.fallbackAssetImage!);
-      return decode(
-        imageData.buffer.asUint8List(),
-        cacheWidth: key.width,
-        cacheHeight: key.height,
-      );
-    }
-    if (key.fallbackImage != null)
-      return decode(
-        key.fallbackImage!,
-        cacheWidth: key.width,
-        cacheHeight: key.height,
-      );
-
-    return Future.error(StateError('Failed to load $url.'));
+  Uint8List? diskCacheData = await loadFromDiskCache();
+  if (diskCacheData != null) {
+    final ui.ImmutableBuffer buffer = await ui.ImmutableBuffer.fromUint8List(diskCacheData);
+    return decode(buffer);
   }
 
+  Uint8List? remoteImageData = await loadFromRemote(
+    key.url,
+    key.header,
+    key.retryLimit,
+    key.retryDuration,
+    key.retryDurationFactor,
+    key.timeoutDuration,
+    key.loadingProgress,
+    key.getRealUrl,
+    printError: key.printError,
+  );
+
+  if (remoteImageData != null) {
+    final ui.ImmutableBuffer buffer = await ui.ImmutableBuffer.fromUint8List(remoteImageData);
+    return decode(buffer);
+  }
+
+  return Future.error(StateError('Failed to load image.'));
+}
   /// Load the disk cache
   ///
   /// Check the following conditions: (no [CacheRule])
