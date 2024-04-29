@@ -159,10 +159,10 @@ class AdvancedNetworkImage extends ImageProvider<AdvancedNetworkImage> {
   assert(key == this);
 
   Uint8List? diskCacheData = await loadFromDiskCache();
-  if (diskCacheData != null) {
+  //if (diskCacheData != null) {
     final ui.ImmutableBuffer buffer = await ui.ImmutableBuffer.fromUint8List(diskCacheData);
     return decode(buffer);
-  }
+  //}
 
   Uint8List? remoteImageData = await loadFromRemote(
     key.url,
