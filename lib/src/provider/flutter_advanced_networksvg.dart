@@ -13,10 +13,10 @@ import 'package:flutter_advanced_networkimage_2/src/disk_cache.dart';
 import 'package:flutter_advanced_networkimage_2/src/utils.dart';
 
 /// Fetches the given URL from the network, associating it with some options.
-class AdvancedNetworkSvg extends PictureProvider<AdvancedNetworkSvg, Uint8List?> {
+class AdvancedNetworkSvg extends PictureProvider<AdvancedNetworkSvg, Uint8List> {
   AdvancedNetworkSvg(
     this.url,
-    PictureInfoDecoderBuilder<Uint8List?> decoder, {
+    PictureInfoDecoderBuilder<Uint8List> decoder, {
     this.scale = 1.0,
     this.header,
     this.colorFilter,
@@ -116,7 +116,7 @@ class AdvancedNetworkSvg extends PictureProvider<AdvancedNetworkSvg, Uint8List?>
       try {
         Uint8List? _diskCache = await loadFromDiskCache();
         if (key.loadedCallback != null) key.loadedCallback!();
-        return await decode(_diskCache, key.colorFilter, key.toString(),
+        return await decode(_diskCache!, key.colorFilter, key.toString(),
             onError: onError);
       } catch (e) {
         if (key.printError) print(e);
@@ -148,14 +148,14 @@ class AdvancedNetworkSvg extends PictureProvider<AdvancedNetworkSvg, Uint8List?>
           onError: onError);
     }
     if (key.fallbackImage != null)
-      return await decode(key.fallbackImage, key.colorFilter, key.toString(),
+      return await decode(key.fallbackImage!, key.colorFilter, key.toString(),
           onError: onError);
 
     return Future.error(StateError('Failed to load $url.'));
   }
 
   Future<PictureInfo> decode(
-      Uint8List? imageData, ColorFilter? colorFilter, String keyString,
+      Uint8List imageData, ColorFilter? colorFilter, String keyString,
       {PictureErrorListener? onError}) {
     if (onError != null)
       // ignore: invalid_return_type_for_catch_error
