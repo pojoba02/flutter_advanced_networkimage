@@ -180,7 +180,8 @@ class AdvancedNetworkImage extends ImageProvider<AdvancedNetworkImage> {
   );
 
   if (remoteImageData != null) {
-    final ui.ImmutableBuffer buffer = await ui.ImmutableBuffer.fromUint8List(remoteImageData);
+    //final ui.ImmutableBuffer buffer = await ui.ImmutableBuffer.fromUint8List(remoteImageData);
+    final ImmutableBuffer buffer = await ImmutableBuffer.fromUint8List(remoteImageData);
     return decode(buffer);
   }
 
